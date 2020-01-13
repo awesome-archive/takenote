@@ -4,23 +4,15 @@ import uuid from 'uuid/v4'
 import { Folder } from 'constants/enums'
 import { NoteItem } from 'types'
 
-export function getNoteTitle(text: string): string {
-  const noteTitleRegEx = /[\w'?!., ]{1,50}/
+export const getNoteTitle = (text: string): string => {
+  const noteText = text.trim().match(/[^#]{1,50}/)
+  const noteTextFirstLine = noteText ? noteText[0].split(/\r?\n/)[0] : 'New Note'
 
-  let noteTitle: string
-  let noteText = text.match(noteTitleRegEx)
-
-  if (!noteText) {
-    noteTitle = 'New Note'
-  } else {
-    noteTitle = noteText[0]
-  }
-
-  return noteTitle
+  return noteTextFirstLine
 }
 
-export function noteWithFrontmatter(note: NoteItem): string {
-  return `---
+export const noteWithFrontmatter = (note: NoteItem): string =>
+  `---
 title: ${getNoteTitle(note.text)}
 created: ${note.created}
 lastUpdated: ${note.lastUpdated}
@@ -28,14 +20,13 @@ category: ${note.category ? note.category : ''}
 ---
 
 ${note.text}`
-}
 
-export function downloadNote(filename: string, note: NoteItem): void {
+export const downloadNote = (filename: string, note: NoteItem): void => {
   const pom = document.createElement('a')
 
   pom.setAttribute(
     'href',
-    'data:text/plain;charset=utf-8,' + encodeURIComponent(noteWithFrontmatter(note))
+    `data:text/plain;charset=utf-8,${encodeURIComponent(noteWithFrontmatter(note))}`
   )
   pom.setAttribute('download', `${filename}.md`)
 
@@ -48,7 +39,13 @@ export function downloadNote(filename: string, note: NoteItem): void {
   }
 }
 
-export function sortByLastUpdated(a: NoteItem, b: NoteItem) {
+export const sortByFavourites = (a: NoteItem, b: NoteItem) => {
+  if (a.favorite && !b.favorite) return -1
+  if (!a.favorite && b.favorite) return 1
+  return 0
+}
+
+export const sortByLastUpdated = (a: NoteItem, b: NoteItem) => {
   let dateA = new Date(a.lastUpdated)
   let dateB = new Date(b.lastUpdated)
 

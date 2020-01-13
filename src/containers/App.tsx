@@ -1,41 +1,41 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React from 'react'
+import { Switch, Route, Redirect } from 'react-router-dom'
+import { Helmet, HelmetProvider } from 'react-helmet-async'
 
-import AppSidebar from 'containers/AppSidebar'
-import KeyboardShortcuts from 'containers/KeyboardShortcuts'
-import NoteEditor from 'containers/NoteEditor'
-import NoteList from 'containers/NoteList'
-import SettingsModal from 'containers/SettingsModal'
-import { KeyboardProvider } from 'contexts/KeyboardContext'
-import { loadCategories } from 'slices/category'
-import { loadNotes } from 'slices/note'
-import { RootState } from 'types'
+import { useAuth0 } from 'auth'
+import PrivateRoute from 'routes/PrivateRoute'
+import LandingPage from 'containers/LandingPage'
+import TakeNoteApp from 'containers/TakeNoteApp'
 
 const App: React.FC = () => {
-  const { dark } = useSelector((state: RootState) => state.themeState)
+  const { loading } = useAuth0()
 
-  const dispatch = useDispatch()
-
-  const _loadNotes = () => {
-    dispatch(loadNotes())
+  if (loading) {
+    return (
+      <div className="loading">
+        <div className="la-ball-beat">
+          <div />
+          <div />
+          <div />
+        </div>
+      </div>
+    )
   }
-  const _loadCategories = () => {
-    dispatch(loadCategories())
-  }
-
-  useEffect(_loadNotes, [])
-  useEffect(_loadCategories, [])
 
   return (
-    <div className={`app ${dark ? 'dark' : ''}`}>
-      <KeyboardProvider>
-        <AppSidebar />
-        <NoteList />
-        <NoteEditor />
-        <KeyboardShortcuts />
-        <SettingsModal />
-      </KeyboardProvider>
-    </div>
+    <HelmetProvider>
+      <Helmet>
+        <meta charSet="utf-8" />
+        <title>TakeNote</title>
+        <link rel="canonical" href="https://takenote.dev" />
+      </Helmet>
+
+      <Switch>
+        <Route exact path="/" component={LandingPage} />
+        <PrivateRoute exact path="/app" component={TakeNoteApp} />
+        <Redirect to="/" />
+      </Switch>
+    </HelmetProvider>
   )
 }
 

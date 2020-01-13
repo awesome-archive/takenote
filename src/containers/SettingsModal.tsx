@@ -1,27 +1,34 @@
 import React, { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { X } from 'react-feather'
 
-import { toggleSettingsModal, updateCodeMirrorOption } from 'slices/settings'
-import { toggleDarkTheme } from 'slices/theme'
-import { RootState } from 'types'
+import { useAuth0 } from 'auth'
+import {
+  toggleSettingsModal,
+  updateCodeMirrorOption,
+  togglePreviewMarkdown,
+  toggleDarkTheme,
+} from 'slices/settings'
+import { ReactMouseEvent, RootState } from 'types'
 import Switch from 'components/Switch'
 
 const SettingsModal: React.FC = () => {
-  const { codeMirrorOptions, isOpen } = useSelector((state: RootState) => state.settingsState)
-  const { dark } = useSelector((state: RootState) => state.themeState)
+  const { user, logout } = useAuth0()
+  const { codeMirrorOptions, isOpen, previewMarkdown, darkTheme } = useSelector(
+    (state: RootState) => state.settingsState
+  )
 
   const dispatch = useDispatch()
 
   const _toggleSettingsModal = () => dispatch(toggleSettingsModal())
+  const _togglePreviewMarkdown = () => dispatch(togglePreviewMarkdown())
   const _toggleDarkTheme = () => dispatch(toggleDarkTheme())
-  const _updateCodeMirrorOption = (key: string, value: string) =>
+  const _updateCodeMirrorOption = (key: string, value: any) =>
     dispatch(updateCodeMirrorOption({ key, value }))
 
   const node = useRef<HTMLDivElement>(null)
 
-  const handleDomClick = (
-    event: MouseEvent | React.MouseEvent<HTMLDivElement> | React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleDomClick = (event: ReactMouseEvent) => {
     event.stopPropagation()
 
     if (node.current && node.current.contains(event.target as HTMLDivElement)) return
@@ -31,35 +38,84 @@ const SettingsModal: React.FC = () => {
     }
   }
 
-  const toggleDarkThemeHandler = () => {
-    _toggleDarkTheme()
-    _updateCodeMirrorOption('theme', dark ? 'base16-light' : 'zenburn')
+  const togglePreviewMarkdownHandler = () => {
+    _togglePreviewMarkdown()
   }
 
-  const toggleVimMode = () => {
-    _updateCodeMirrorOption('keyMap', codeMirrorOptions.keyMap === 'vim' ? 'default' : 'vim')
+  const toggleDarkThemeHandler = () => {
+    _toggleDarkTheme()
+    _updateCodeMirrorOption('theme', darkTheme ? 'base16-light' : 'new-moon')
+  }
+
+  const toggleLineHighlight = () => {
+    _updateCodeMirrorOption('styleActiveLine', !codeMirrorOptions.styleActiveLine)
+  }
+
+  const handleEscPress = (event: KeyboardEvent) => {
+    event.stopPropagation()
+    if (event.key === 'Escape' && isOpen) {
+      _toggleSettingsModal()
+    }
   }
 
   useEffect(() => {
     document.addEventListener('mousedown', handleDomClick)
+    document.addEventListener('keydown', handleEscPress)
     return () => {
       document.removeEventListener('mousedown', handleDomClick)
+      document.removeEventListener('keydown', handleEscPress)
     }
   })
 
   return isOpen ? (
     <div className="dimmer">
       <div ref={node} className="settings-modal">
-        <h2>Settings</h2>
-
-        <div className="settings-options">
-          <div className="settings-label">Dark Mode</div>
-          <Switch toggle={toggleDarkThemeHandler} checked={dark} />
+        <div className="settings-header">
+          <h2>Settings</h2>
+          <div
+            className="action-button"
+            onClick={() => {
+              if (isOpen) {
+                _toggleSettingsModal()
+              }
+            }}
+          >
+            <X size={20} />
+          </div>
         </div>
 
         <div className="settings-options">
-          <div className="settings-label">Vim Mode</div>
-          <Switch toggle={toggleVimMode} checked={codeMirrorOptions.keyMap === 'vim'} />
+          <section className="profile flex">
+            <div>
+              <img src={user.picture} alt="Profile" className="profile-picture" />
+            </div>
+            <div className="profile-details">
+              <h3>{user.name}</h3>
+              <div className="subtitle">{user.email}</div>
+              <button
+                onClick={() => {
+                  logout()
+                }}
+              >
+                Log out
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div className="settings-options">
+          <div>Active line highlight</div>
+          <Switch toggle={toggleLineHighlight} checked={codeMirrorOptions.styleActiveLine} />
+        </div>
+
+        <div className="settings-options">
+          <div>Markdown preview</div>
+          <Switch toggle={togglePreviewMarkdownHandler} checked={previewMarkdown} />
+        </div>
+
+        <div className="settings-options">
+          <div>Dark mode</div>
+          <Switch toggle={toggleDarkThemeHandler} checked={darkTheme} />
         </div>
 
         <section className="settings-section">
@@ -73,7 +129,7 @@ const SettingsModal: React.FC = () => {
           <div className="settings-shortcut">
             <div>Delete note</div>
             <div>
-              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>W</kbd>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>U</kbd>
             </div>
           </div>
           <div className="settings-shortcut">
@@ -85,13 +141,31 @@ const SettingsModal: React.FC = () => {
           <div className="settings-shortcut">
             <div>Download note</div>
             <div>
-              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>D</kbd>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>P</kbd>
             </div>
           </div>
           <div className="settings-shortcut">
-            <div>Sync note</div>
+            <div>Sync notes</div>
             <div>
-              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>S</kbd>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>L</kbd>
+            </div>
+          </div>
+          <div className="settings-shortcut">
+            <div>Markdown preview</div>
+            <div>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>J</kbd>
+            </div>
+          </div>
+          <div className="settings-shortcut">
+            <div>Toggle theme</div>
+            <div>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>K</kbd>
+            </div>
+          </div>
+          <div className="settings-shortcut">
+            <div>Focus search</div>
+            <div>
+              <kbd>CTRL</kbd> + <kbd>ALT</kbd> + <kbd>F</kbd>
             </div>
           </div>
         </section>

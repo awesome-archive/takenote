@@ -1,26 +1,29 @@
-import { createSlice, PayloadAction, Slice } from 'redux-starter-kit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-import { SyncState } from 'types'
+import { SyncState, SyncStatePayload } from 'types'
 
 const initialState: SyncState = {
   error: '',
   syncing: false,
+  lastSynced: '',
 }
 
-const syncSlice: Slice<SyncState> = createSlice({
-  slice: 'sync',
+const syncSlice = createSlice({
+  name: 'sync',
   initialState,
   reducers: {
-    syncState: state => ({
+    syncState: (state, { payload }: PayloadAction<SyncStatePayload>) => ({
       ...state,
       syncing: true,
     }),
     syncStateError: (state, { payload }: PayloadAction<string>) => ({
+      ...state,
       error: payload,
       syncing: false,
     }),
-    syncStateSuccess: state => ({
+    syncStateSuccess: (state, { payload }: PayloadAction<string>) => ({
       ...state,
+      lastSynced: payload,
       syncing: false,
     }),
   },

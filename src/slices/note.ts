@@ -1,10 +1,9 @@
-import { createSlice, PayloadAction, Slice } from 'redux-starter-kit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import { Folder } from 'constants/enums'
-import { sortByLastUpdated } from 'helpers'
+import { sortByLastUpdated, sortByFavourites } from 'helpers'
 import { NoteItem, NoteState } from 'types'
 
-// TODO: Ugh
 const getNewActiveNoteId = (
   notes: NoteItem[],
   oldNoteId: string,
@@ -21,7 +20,10 @@ const getNewActiveNoteId = (
 }
 
 export const getFirstNoteId = (folder: Folder, notes: NoteItem[], categoryId?: string): string => {
-  const notesNotTrash = notes.filter(note => !note.trash).sort(sortByLastUpdated)
+  const notesNotTrash = notes
+    .filter(note => !note.trash)
+    .sort(sortByLastUpdated)
+    .sort(sortByFavourites)
   const firstNote = {
     [Folder.ALL]: () => notesNotTrash[0],
     [Folder.CATEGORY]: () => notesNotTrash.find(note => note.category === categoryId),
@@ -38,10 +40,11 @@ const initialState: NoteState = {
   error: '',
   loading: true,
   notes: [],
+  searchValue: '',
 }
 
-const noteSlice: Slice<NoteState> = createSlice({
-  slice: 'note',
+const noteSlice = createSlice({
+  name: 'note',
   initialState,
   reducers: {
     addCategoryToNote: (
@@ -61,6 +64,10 @@ const noteSlice: Slice<NoteState> = createSlice({
       ...state,
       notes: state.notes.filter(note => note.id !== payload),
       activeNoteId: getNewActiveNoteId(state.notes, payload, state.activeCategoryId),
+    }),
+    emptyTrash: state => ({
+      ...state,
+      notes: state.notes.filter(note => !note.trash),
     }),
     loadNotes: () => initialState,
     loadNotesError: (state, { payload }: PayloadAction<string>) => ({
@@ -83,6 +90,10 @@ const noteSlice: Slice<NoteState> = createSlice({
     pruneNotes: state => ({
       ...state,
       notes: state.notes.filter(note => note.text !== '' || note.id === state.activeNoteId),
+    }),
+    searchNotes: (state, { payload }: PayloadAction<string>) => ({
+      ...state,
+      searchValue: payload,
     }),
     swapCategory: (state, { payload }: PayloadAction<string>) => ({
       ...state,
@@ -128,11 +139,13 @@ export const {
   addCategoryToNote,
   addNote,
   deleteNote,
+  emptyTrash,
   loadNotes,
   loadNotesError,
   loadNotesSuccess,
   pruneCategoryFromNotes,
   pruneNotes,
+  searchNotes,
   swapCategory,
   swapFolder,
   swapNote,

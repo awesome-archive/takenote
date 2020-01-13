@@ -1,18 +1,21 @@
 import React from 'react'
 import { render } from 'react-dom'
 import { Provider } from 'react-redux'
-import { BrowserRouter as Router } from 'react-router-dom'
+import { Router } from 'react-router-dom'
 import createSagaMiddleware from 'redux-saga'
-import { configureStore, getDefaultMiddleware } from 'redux-starter-kit'
+import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit'
 
+import { Auth0Provider } from 'auth'
+import config from 'config/config.json'
 import App from 'containers/App'
-import rootReducer from 'slices'
 import rootSaga from 'sagas'
+import rootReducer from 'slices'
+import * as serviceWorker from 'serviceWorker'
+import history from 'helpers/history'
 
 import 'styles/index.scss'
 
 const sagaMiddleware = createSagaMiddleware()
-
 const store = configureStore({
   reducer: rootReducer,
   middleware: [sagaMiddleware, ...getDefaultMiddleware({ thunk: false })],
@@ -20,11 +23,24 @@ const store = configureStore({
 
 sagaMiddleware.run(rootSaga)
 
+const onRedirectCallback = (appState: any) => {
+  history.push(appState && appState.targetUrl ? appState.targetUrl : window.location.pathname)
+}
+
 render(
-  <Router>
+  <Auth0Provider
+    domain={config.domain}
+    client_id={config.clientId}
+    redirect_uri={window.location.href}
+    onRedirectCallback={onRedirectCallback}
+  >
     <Provider store={store}>
-      <App />
+      <Router history={history}>
+        <App />
+      </Router>
     </Provider>
-  </Router>,
+  </Auth0Provider>,
   document.getElementById('root')
 )
+
+serviceWorker.register()
